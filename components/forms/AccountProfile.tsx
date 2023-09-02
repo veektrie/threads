@@ -13,7 +13,7 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { UserValidation } from '@/lib/validations/user';
+import { UserValidation } from '@/lib/user';
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import * as z from "zod";
