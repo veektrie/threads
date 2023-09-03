@@ -3,8 +3,8 @@
 import { FilterQuery, SortOrder } from "mongoose";
 import { revalidatePath } from "next/cache";
 
-// import Community from "../models/community.model";
-// import Thread from "../models/thread.model";
+import Community from "../models/commuity.model";
+import Thread from "../models/thread.model";
 import User from "../models/user.model";
 
 import { connectToDB } from "../mongoose";
