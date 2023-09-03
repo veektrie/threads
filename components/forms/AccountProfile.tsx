@@ -1,24 +1,29 @@
 "use client"
-import { useForm } from 'react-hook-form';
-import { Button } from "@/components/ui/button";
-
-import {zodResolver} from '@hookform/resolvers/zod'
+import * as z from "zod";
+import Image from "next/image";
+import { useForm } from "react-hook-form";
+import { usePathname, useRouter } from "next/navigation";
+import { ChangeEvent, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
-import { UserValidation } from '@/lib/user';
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import * as z from "zod";
-import Image from 'next/image';
-import { ChangeEvent, useState } from 'react';
+
+import { useUploadThing } from "@/lib/validations/uploadthing";
+import { isBase64Image } from "@/lib/validations/utils";
+
+import { UserValidation } from "@/lib/user";
+import { updateUser } from "@/lib/actions/user.action";
+
 
 interface Props{
     user: {
@@ -33,7 +38,12 @@ interface Props{
 }
 
 const AccountProfile = ({ user, btnTitle }: Props) => {
-    const [files,setFiles] = useState<File[]>([])
+    const [files, setFiles] = useState<File[]>([])
+    const { startUpload } = useUploadThing('media');
+    const router = useRouter();
+    const pathname = usePathname();
+
+
     const form = useForm({
         resolver: zodResolver(UserValidation),
         defaultValues: {
@@ -66,11 +76,37 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
         }
     }
 
-    function onSubmit(values: z.infer<typeof UserValidation>) {
-        const blob = values.profile_photo;
+    const onSubmit = async (values: z.infer<typeof UserValidation>) => {
+      const blob = values.profile_photo;
+  
+      const hasImageChanged = isBase64Image(blob);
+      if (hasImageChanged) {
+        const imgRes = await startUpload(files);
+  
+        if (imgRes && imgRes[0].fileUrl) {
+          values.profile_photo = imgRes[0].fileUrl;
+        }
+      }
+  
+      await updateUser({
+        name: values.name,
+        path: pathname,
+        username: values.username,
+        userId: user.id,
+        bio: values.bio,
+        image: values.profile_photo,
+      });
+  
+      if (pathname === "/profile/edit") {
+        router.back();
+      } else {
+        router.push("/");
+      }
+    };
+  
 
-        const hasImageChanged = isBase64Image(blob);
-    }
+
+
     
     return (
         <Form {...form}>
