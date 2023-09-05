@@ -1,36 +1,61 @@
-import { currentUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
+import { currentUser } from "@clerk/nextjs";
 
-import { fetchUser } from "@/lib/actions/user.action";
-import AccountProfile from "@/components/forms/AccountProfile";
+import UserCard from "@/components/cards/UserCard";
+import Searchbar from "@/components/shared/Searchbar";
+import Pagination from "@/components/shared/Pagination";
 
-async function Page() {
+import { fetchUser, fetchUsers } from "@/lib/actions/user.action";
+
+async function Page({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) {
   const user = await currentUser();
-  if (!user) return null; // to avoid typescript warnings
+  if (!user) return null;
 
   const userInfo = await fetchUser(user.id);
-  if (userInfo?.onboarded) redirect("/");
+  if (!userInfo?.onboarded) redirect("/onboarding");
 
-  const userData = {
-    id: user.id,
-    objectId: userInfo?._id,
-    username: userInfo ? userInfo?.username : user.username,
-    name: userInfo ? userInfo?.name : user.firstName ?? "",
-    bio: userInfo ? userInfo?.bio : "",
-    image: userInfo ? userInfo?.image : user.imageUrl,
-  };
+  const result = await fetchUsers({
+    userId: user.id,
+    searchString: searchParams.q,
+    pageNumber: searchParams?.page ? +searchParams.page : 1,
+    pageSize: 25,
+  });
 
   return (
-    <main className='mx-auto flex max-w-3xl flex-col justify-start px-10 py-20'>
-      <h1 className='head-text'>Onboarding</h1>
-      <p className='mt-3 text-base-regular text-light-2'>
-        Complete your profile now, to use Threds.
-      </p>
+    <section>
+      <h1 className='head-text mb-10'>Search</h1>
 
-      <section className='mt-9 bg-dark-2 p-10'>
-        <AccountProfile user={userData} btnTitle='Continue' />
-      </section>
-    </main>
+      <Searchbar routeType='search' />
+
+      <div className='mt-14 flex flex-col gap-9'>
+        {result.users.length === 0 ? (
+          <p className='no-result'>No Result</p>
+        ) : (
+          <>
+            {result.users.map((person) => (
+              <UserCard
+                key={person.id}
+                id={person.id}
+                name={person.name}
+                username={person.username}
+                imgUrl={person.image}
+                personType='User'
+              />
+            ))}
+          </>
+        )}
+      </div>
+
+      <Pagination
+        path='search'
+        pageNumber={searchParams?.page ? +searchParams.page : 1}
+        isNext={result.isNext}
+      />
+    </section>
   );
 }
 
